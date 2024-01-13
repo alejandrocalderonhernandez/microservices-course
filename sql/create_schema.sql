@@ -1,7 +1,7 @@
 -- table company
 create table if not exists company(
-                                      id serial primary key,
-                                      "name" varchar(32) not null unique,
+    id serial primary key,
+    "name" varchar(32) not null unique,
     founder varchar(128),
     logo varchar(255),
     foundation_date date
