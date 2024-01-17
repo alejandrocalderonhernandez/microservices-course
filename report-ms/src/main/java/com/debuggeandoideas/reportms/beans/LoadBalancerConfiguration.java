@@ -14,7 +14,6 @@ public class LoadBalancerConfiguration {
         return ServiceInstanceListSupplier
                 .builder()
                 .withBlockingDiscoveryClient()
-                .withSameInstancePreference()
                 .build(context);
     }
 }
