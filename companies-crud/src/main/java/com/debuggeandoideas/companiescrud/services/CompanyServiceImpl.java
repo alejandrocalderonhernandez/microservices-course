@@ -3,6 +3,7 @@ package com.debuggeandoideas.companiescrud.services;
 import com.debuggeandoideas.companiescrud.entities.Category;
 import com.debuggeandoideas.companiescrud.entities.Company;
 import com.debuggeandoideas.companiescrud.repositories.CompanyRepository;
+import io.micrometer.tracing.Tracer;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,6 +19,8 @@ import java.util.Objects;
 public class CompanyServiceImpl implements CompanyService {
 
     private final CompanyRepository companyRepository;
+    private final Tracer tracer;
+
 
     @Override
     public Company create(Company company) {
@@ -31,6 +34,12 @@ public class CompanyServiceImpl implements CompanyService {
 
     @Override
     public Company readByName(String name) {
+        var spam = tracer.nextSpan().name("readByName");
+        try (Tracer.SpanInScope spanInScope = this.tracer.withSpan(spam.start())) {
+            log.info("Getting comany from DB");
+        } finally {
+            spam.end();
+        }
         return this.companyRepository.findByName(name)
                 .orElseThrow(() -> new NoSuchElementException("Company not found"));
     }

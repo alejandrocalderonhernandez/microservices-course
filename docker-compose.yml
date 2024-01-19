@@ -36,7 +36,7 @@ services:
         KAFKA_BROKER_ID: 1
         KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
         KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
-        KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://msg-broker:9092,PLAINTEXT_INTERNAL://broker:29092
+        KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://broker:29092
         KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
         KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
         KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
@@ -54,3 +54,71 @@ services:
         MONGO_INITDB_DATABASE: reports
       ports:
         - "27017:27017"
+
+    otel-collector:
+      image: otel/opentelemetry-collector-contrib:0.82.0
+      restart: always
+      container_name: otel-collector
+      command:
+        - --config=/etc/otelcol-contrib/otel-collector.yml
+      volumes:
+        - ./metric_files/otel-collector.yml:/etc/otelcol-contrib/otel-collector.yml
+      ports:
+        - "1888:1888" 
+        - "8888:8888"
+        - "8889:8889"
+        - "13133:13133"
+        - "4317:4317"
+        - "4318:4318"
+        - "55679:55679"
+      depends_on:
+        - jaeger-all-in-one
+        - zipkin-all-in-one
+
+    prometheus:
+      container_name: prometheus
+      image: prom/prometheus
+      restart: always
+      command:
+        - --config.file=/etc/prometheus/prometheus.yml
+      volumes:
+        - ./metric_files/prometheus.yml:/etc/prometheus/prometheus.yml
+      ports:
+        - "9090:9090"
+
+    loki:
+      image: grafana/loki:latest
+      command: -config.file=/etc/loki/local-config.yaml
+      ports:
+        - "3100:3100"
+
+    tempo:
+      image: grafana/tempo:latest
+      command: [ "-config.file=/etc/tempo.yml" ]
+      volumes:
+        - ./metric_files/tempo.yml:/etc/tempo.yml
+      ports:
+        - "3200:3200"
+        - "4317"
+
+    grafana:
+      container_name: grafana
+      image: grafana/grafana
+      volumes:
+      - ./metric_files/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+      ports:
+        - "3000:3000"
+
+    jaeger-all-in-one:
+      image: jaegertracing/all-in-one:latest
+      restart: always
+      ports:
+        - "16686:16686"
+        - "14268"
+        - "14250"
+
+    zipkin-all-in-one:
+      image: openzipkin/zipkin:latest
+      restart: always
+      ports:
+        - "9411:9411"
