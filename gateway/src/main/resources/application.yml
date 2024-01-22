@@ -2,7 +2,7 @@ spring:
   application:
     name: gateway
   profiles:
-    default: eureka-on-cb
+    default: oauth2
 server:
   port: 4040
 eureka:
