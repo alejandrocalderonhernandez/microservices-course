@@ -1,0 +1,29 @@
+spring:
+  profiles:
+    default: default
+  application:
+    name: auth-server
+  h2:
+    console:
+      enabled: false
+  config:
+    import: 'optional:configserver:${CONFIG_SERVER_HOST}'
+  datasource:
+    url: jdbc:h2:mem:users;
+    username: sa
+    password: sa
+    driver-class-name: org.h2.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: update
+server:
+  port: 3030
+  servlet:
+    context-path: /auth-server
+eureka:
+  instance:
+    instance-id: "${spring.application.name}:${random.value}"
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL}

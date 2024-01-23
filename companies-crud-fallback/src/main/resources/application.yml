@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: companies-crud-fallback
+server:
+  servlet:
+    context-path: /companies-crud-fallback
+  port: 8787
+eureka:
+  instance:
+    instance-id: "${spring.application.name}:${random.value}"
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL}
+
+

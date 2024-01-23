@@ -1,0 +1,219 @@
+version: '3.8'
+
+services:
+
+    db:
+      image: postgres:16.1
+      container_name: db-companies
+      restart: always
+      volumes:
+        - ./sql/create_schema.sql:/docker-entrypoint-initdb.d/create_schema.sql
+        - ./sql/data.sql:/docker-entrypoint-initdb.d/data.sql
+      environment:
+        POSTGRES_DB: 'companies'
+        POSTGRES_USER: 'debuggeandoideas'
+        POSTGRES_PASSWORD: 'udemy'
+      ports:
+        - '5432:5432'
+
+    zookeeper:
+      image: confluentinc/cp-zookeeper:7.4.3
+      container_name: load-balancer
+      restart: always
+      environment:
+        ZOOKEEPER_CLIENT_PORT: 2181
+        ZOOKEEPER_TICK_TIME: 2000
+      ports:
+        - "2181:2181"
+
+    kafka:
+      image: confluentinc/cp-kafka:7.4.3
+      container_name: msg-broker
+      restart: always
+      depends_on:
+        - zookeeper
+      environment:
+        KAFKA_BROKER_ID: 1
+        KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+        KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+        KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://msg-broker:9092,PLAINTEXT_INTERNAL://msg-broker:29092
+        KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+        KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+        KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      ports:
+        - "9092:9092"
+        
+    mongo-db:
+      image: mongo:7.0.5-rc0
+      restart: always
+      container_name: mongo-db
+      hostname: mongodb
+      environment:
+        MONGO_INITDB_ROOT_USERNAME: sa
+        MONGO_INITDB_ROOT_PASSWORD: sa
+        MONGO_INITDB_DATABASE: reports
+      ports:
+        - "27017:27017"
+
+    otel-collector:
+      image: otel/opentelemetry-collector-contrib:0.82.0
+      restart: always
+      container_name: otel-collector
+      command:
+        - --config=/etc/otelcol-contrib/otel-collector.yml
+      volumes:
+        - ./metric_files/otel-collector.yml:/etc/otelcol-contrib/otel-collector.yml
+      ports:
+        - "1888:1888" 
+        - "8888:8888"
+        - "8889:8889"
+        - "13133:13133"
+        - "4317:4317"
+        - "4318:4318"
+        - "55679:55679"
+      depends_on:
+        - jaeger-all-in-one
+        - zipkin-all-in-one
+
+    prometheus:
+      container_name: prometheus
+      image: prom/prometheus
+      restart: always
+      command:
+        - --config.file=/etc/prometheus/prometheus.yml
+      volumes:
+        - ./metric_files/prometheus.yml:/etc/prometheus/prometheus.yml
+      ports:
+        - "9090:9090"
+
+    loki:
+      image: grafana/loki:latest
+      command: -config.file=/etc/loki/local-config.yaml
+      ports:
+        - "3100:3100"
+
+    tempo:
+      image: grafana/tempo:latest
+      command: [ "-config.file=/etc/tempo.yml" ]
+      volumes:
+        - ./metric_files/tempo.yml:/etc/tempo.yml
+      ports:
+        - "3200:3200"
+        - "4317"
+
+    grafana:
+      container_name: grafana
+      image: grafana/grafana
+      volumes:
+      - ./metric_files/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+      ports:
+        - "3000:3000"
+
+    jaeger-all-in-one:
+      image: jaegertracing/all-in-one:latest
+      restart: always
+      ports:
+        - "16686:16686"
+        - "14268"
+        - "14250"
+
+    zipkin-all-in-one:
+      image: openzipkin/zipkin:latest
+      restart: always
+      ports:
+        - "9411:9411"
+
+    ms-registry-server:
+      image: ms-debuggeandoideas-registry-server:latest
+      container_name: ms-registry-server
+      restart: always
+      ports:
+        - "8761:8761"
+
+    ms-config-server:
+      image: ms-debuggeandoideas-config-server:latest
+      container_name: ms-config-server
+      restart: always
+      ports:
+        - "7777:7777"
+      depends_on:
+        - ms-registry-server
+      environment:
+        EUREKA_URL: http://ms-registry-server:8761/eureka/
+
+    ms-companies:
+      image: ms-debuggeandoideas-companies:latest
+      container_name: ms-companies
+      restart: always
+      ports:
+        - "8081:8081"
+      depends_on:
+        - ms-config-server
+        - db
+        - otel-collector
+      environment:
+        EUREKA_URL: http://ms-registry-server:8761/eureka/
+        CONFIG_SERVER_HOST: 'http://ms-config-server:7777'
+        OTLP_METRICS_URL: 'http://otel-collector:4318/v1/metrics'
+        OTLP_TRACING_URL: 'http://otel-collecto:4318/v1/traces'
+
+    ms-companies-fallback:
+      image: ms-debuggeandoideas-fallback:latest
+      container_name: ms-companies-fallback
+      restart: always
+      ports:
+        - "8787:8787"
+      depends_on:
+        - ms-config-server
+      environment:
+        EUREKA_URL: http://ms-registry-server:8761/eureka/
+
+    ms-report:
+      image: ms-debuggeandoideas-report:latest
+      container_name: ms-report
+      restart: always
+      ports:
+        - "7070:7070"
+      depends_on:
+        - ms-config-server
+        - kafka
+      environment:
+        EUREKA_URL: http://ms-registry-server:8761/eureka/
+        CONFIG_SERVER_HOST: 'http://ms-config-server:7777'
+        BROKER_URL: 'msg-broker:9092'
+
+    ms-report-listener:
+      image: ms-debuggeandoideas-report-listener:latest
+      container_name: ms-report-listener
+      restart: always
+      depends_on:
+        - kafka
+        - ms-report
+        - mongo-db
+      environment:
+        EUREKA_URL: http://ms-registry-server:8761/eureka/
+        MONGO_HOST: 'mongo-db'
+        BROKER_URL: 'msg-broker:9092'
+    
+    ms-auth:
+      image: ms-debuggeandoideas-auth:latest
+      container_name: ms-auth
+      restart: always
+      ports:
+        - "3030:3030"
+      depends_on:
+        - ms-config-server
+      environment:
+        EUREKA_URL: http://ms-registry-server:8761/eureka/
+        CONFIG_SERVER_HOST: 'http://ms-config-server:7777'
+
+    ms-gateway:
+      image: ms-debuggeandoideas-gateway:latest
+      container_name: ms-gateway
+      restart: always
+      ports:
+        - "4040:4040"
+      depends_on:
+        - ms-config-server
+      environment:
+        EUREKA_URL: http://ms-registry-server:8761/eureka/
