@@ -7,24 +7,24 @@ spring:
     config:
       server:
         git:
-          uri: git@github.com:alejandrocalderonhernandez/microservice-configs.git
+          uri: https://github.com/alejandrocalderonhernandez/microservice-configs.git
           default-label: main
           clone-on-start: true
           #username: alejandrocalderonhernandez
           #password: ${GIT_TOKEN}
-          ignore-local-ssh-settings: true
-          host-key-algorithm: ecdsa-sha2-nistp256
-          host-key: AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg=
-          private-key: |
-            -----BEGIN EC PRIVATE KEY-----
-            Proc-Type: 4,ENCRYPTED
-            DEK-Info: AES-128-CBC,15D4CD1FDA57332538BF209ED99BF045
+         #ignore-local-ssh-settings: true
+         #host-key-algorithm: ecdsa-sha2-nistp256
+         #host-key: AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg=
+         #private-key: |
+         #  -----BEGIN EC PRIVATE KEY-----
+         #  Proc-Type: 4,ENCRYPTED
+         #  DEK-Info: AES-128-CBC,15D4CD1FDA57332538BF209ED99BF045
   
-            ahSNuc5+pX1Hdzkt8SeTk5ktc1yemCkPz3u3JqQgQ+ZvsNl831oNU8xR5TPxq6xH
-            5v4dTODB0AunhqpbDreU94t6wuQaNuln7nowh4xyioaav7Nyyqwon2jO8a+Qqf7B
-            Z1EyQC9txLsk2FXLpZt958vHvfoRbUnvDeYSIbVK41g=
-            -----END EC PRIVATE KEY-----
-          passphrase: debuggeandoideas
+         #  ahSNuc5+pX1Hdzkt8SeTk5ktc1yemCkPz3u3JqQgQ+ZvsNl831oNU8xR5TPxq6xH
+         #  5v4dTODB0AunhqpbDreU94t6wuQaNuln7nowh4xyioaav7Nyyqwon2jO8a+Qqf7B
+         #  Z1EyQC9txLsk2FXLpZt958vHvfoRbUnvDeYSIbVK41g=
+         #  -----END EC PRIVATE KEY-----
+         #passphrase: debuggeandoideas
 server:
   port: 7777
 eureka:
@@ -32,4 +32,4 @@ eureka:
     instance-id: "${spring.application.name}:${random.value}"
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: ${EUREKA_URL}

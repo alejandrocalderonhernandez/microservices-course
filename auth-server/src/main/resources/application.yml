@@ -7,7 +7,7 @@ spring:
     console:
       enabled: false
   config:
-    import: optional:configserver:http://localhost:7777
+    import: 'optional:configserver:${CONFIG_SERVER_HOST}'
   datasource:
     url: jdbc:h2:mem:users;
     username: sa
@@ -26,4 +26,4 @@ eureka:
     instance-id: "${spring.application.name}:${random.value}"
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: ${EUREKA_URL}
