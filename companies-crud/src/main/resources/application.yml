@@ -1,4 +1,13 @@
 spring:
+  kafka:
+    listener:
+      ack-mode: manual_immediate
+    consumer:
+      bootstrap-servers: localhost:9092
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      group-id: circuitbreaker
   datasource:
     username: ${db.username}
     hikari:
@@ -9,7 +18,7 @@ spring:
   application:
     name: companies-crud
   profiles:
-    default: prod
+    default: default
   config:
     import: "optional:configserver:${CONFIG_SERVER_HOST}"
 server:
